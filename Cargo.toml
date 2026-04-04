@@ -1,0 +1,84 @@
+[package]
+edition = "2021"
+license = "MIT OR Apache-2.0"
+name = "murdertime_5000"
+version = "0.2.0"
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+[dependencies]
+bytemuck = { version = "1.25.0", features = ["derive"] }
+env_logger = "0.11.10"
+hotham = { path = "../hotham/hotham" }
+log = "0.4.29"
+offset-allocator = "0.2.0"
+rand = "0.10.0"
+
+[target.'cfg(target_os = "android")'.dependencies]
+ndk-glue = "0.7"
+
+[package.metadata.android]
+apk_label = "MurderTime 5000"
+fullscreen = true
+runtime_libs = "../hotham/examples/common_lib"
+target_sdk_version = 29
+
+[package.metadata.android.application]
+debuggable = true
+label = "MurderTime 5000"
+theme = "@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen"
+
+[package.metadata.android.application.activity]
+config_changes = "screenSize|screenLayout|orientation|keyboardHidden|keyboard|navigation|uiMode"
+launch_mode = "singleTask"
+orientation = "landscape"
+
+[[package.metadata.android.uses_permission]]
+name = "android.permission.INTERNET"
+
+[[package.metadata.android.uses_permission]]
+name = "android.permission.ACCESS_NETWORK_STATE"
+
+[[package.metadata.android.application.meta_data]]
+name = "com.oculus.supportedDevices"
+value = "quest|quest2"
+
+[[package.metadata.android.application.meta_data]]
+name = "com.oculus.intent.category.VR"
+value = "vr_only"
+
+[[package.metadata.android.application.activity.intent_filter]]
+actions = ["android.intent.action.MAIN"]
+categories = [
+    "com.oculus.intent.category.VR",
+    "android.intent.category.LAUNCHER",
+]
+
+[[package.metadata.android.application.activity.meta_data]]
+name = "com.oculus.vr.focusaware"
+value = "true"
+
+[[package.metadata.android.uses_feature]]
+name = "android.hardware.vulkan.level"
+required = true
+version = 1
+
+[[package.metadata.android.uses_feature]]
+name = "android.hardware.vr.headtracking"
+required = true
+version = 1
+
+# !! IMPORTANT !!
+#
+# When creating your own apps, make sure to generate your own keystore, rather than using our example one!
+# You can use `keytool` like so:
+# keytool -genkey -v -keystore my-release-key.keystore -keyalg RSA -keysize 2048 -validity 10000
+#
+# For more information on key signing and why it's so important, check out this article:
+# https://developer.android.com/studio/publish/app-signing
+#
+# !! IMPORTANT !!
+[package.metadata.android.signing.release]
+keystore_password = "chomsky-vigilant-spa"
+path = "./hotham_examples.keystore"
