@@ -1,15 +1,29 @@
 mod allocator;
+mod components;
 mod compute;
 mod descriptors;
+mod physics;
 mod pipeline;
 mod renderer;
+mod systems;
 
+use crate::{
+    components::{DynamicPhysicsBody, KinematicPhysicsBody},
+    physics::Physics,
+    renderer::{Renderer, SimParams, PARTICLE_COUNT},
+};
 use hotham::{
-    glam, rendering::camera::Frustum, systems::rendering, xr, Engine, HothamResult, TickData,
+    asset_importer,
+    components::LocalTransform,
+    glam,
+    hecs::{self, World},
+    rendering::camera::Frustum,
+    systems::{rendering, update_global_transform_system},
+    xr, Engine, HothamResult, TickData,
 };
 use log::info;
 
-use crate::renderer::{Renderer, SimParams, PARTICLE_COUNT};
+pub const DELTA_TIME: f32 = 1. / 72.;
 
 #[cfg_attr(target_os = "android", ndk_glue::main(backtrace = "on"))]
 pub fn main() {
@@ -28,15 +42,19 @@ pub fn real_main() -> HothamResult<()> {
     let mut engine = Engine::new();
     info!("..done!");
 
+    info!("Building physics..");
+    let mut physics = Physics::new();
+    info!("..done!");
+
+    // let mut renderer = Renderer::new(&mut engine);
     info!("Initialising app..");
-    let mut renderer = Renderer::new(&mut engine);
     init(&mut engine)?;
     info!("Done! Entering main loop..");
 
-    let mut sim_params = SimParams::default();
+    // let mut sim_params = SimParams::default();
 
     while let Ok(tick_data) = engine.update() {
-        tick(tick_data, &mut engine, &mut renderer, &mut sim_params);
+        tick(tick_data, &mut engine, &mut physics);
         engine.finish()?;
     }
 
@@ -46,13 +64,25 @@ pub fn real_main() -> HothamResult<()> {
 fn tick(
     tick_data: TickData,
     engine: &mut Engine,
-    renderer: &mut Renderer,
-    sim_params: &mut SimParams,
+    physics: &mut Physics,
+    // renderer: &mut Renderer,
+    // sim_params: &mut SimParams,
 ) {
-    if tick_data.current_state == xr::SessionState::FOCUSED {}
+    // Gameplay loop
+    if tick_data.current_state == xr::SessionState::FOCUSED {
+        let mut command_buffer = hecs::CommandBuffer::new();
+        // Custom physics
+        systems::physics::physics_system(engine, physics, &mut command_buffer);
+
+        // Bzzzt
+        hotham::systems::haptics_system(engine);
+        hotham::systems::update_global_transform_system(engine);
+
+        command_buffer.run_on(&mut engine.world);
+    }
 
     let views = engine.xr_context.update_views().to_owned();
-
+    // Rendering loop
     unsafe {
         rendering::begin(
             &mut engine.world,
@@ -61,8 +91,16 @@ fn tick(
             &views,
             tick_data.swapchain_image_index,
         );
-        update_sim_params(sim_params, engine, &views);
-        renderer.render(engine, sim_params);
+
+        // PBR Rendering
+        rendering::draw_world(&mut engine.vulkan_context, &mut engine.render_context);
+
+        // Fireflies
+        {
+            // update_sim_params(sim_params, engine, &views);
+            // renderer.render(engine, sim_params);
+        }
+
         rendering::end(&mut engine.vulkan_context, &mut engine.render_context);
     }
 }
@@ -108,6 +146,56 @@ fn update_sim_params(sim_params: &mut SimParams, engine: &mut Engine, views: &[x
     sim_params.particle_count = PARTICLE_COUNT;
 }
 
-fn init(_engine: &mut Engine) -> Result<(), hotham::HothamError> {
+fn init(engine: &mut Engine) -> Result<(), hotham::HothamError> {
+    let render_context = &mut engine.render_context;
+    let vulkan_context = &mut engine.vulkan_context;
+    let world = &mut engine.world;
+
+    let glb_buffers: Vec<&[u8]> = vec![
+        include_bytes!("../assets/floor.glb"),
+        include_bytes!("../assets/damaged_helmet_squished.glb"),
+    ];
+    let models =
+        asset_importer::load_models_from_glb(&glb_buffers, vulkan_context, render_context)?;
+    add_floor(&models, world);
+
+    let models =
+        asset_importer::load_models_from_glb(&glb_buffers, vulkan_context, render_context)?;
+    add_helmet(&models, world);
+
+    // Update global transforms from local transforms before physics_system gets confused
+    update_global_transform_system(engine);
+
     Ok(())
+}
+
+fn add_floor(models: &std::collections::HashMap<String, World>, world: &mut World) {
+    let entity = asset_importer::add_model_to_world("Floor", models, world, None)
+        .expect("Could not find Floor");
+    // let collider = Collider::new(SharedShape::halfspace(na::Vector3::y_axis()));
+    // let rigid_body = RigidBody {
+    //     body_type: BodyType::Fixed,
+    //     ..Default::default()
+    // };
+    world
+        .insert_one(entity, KinematicPhysicsBody::new_box(5.0, 0.5, 5.0))
+        .unwrap();
+}
+
+fn add_helmet(models: &std::collections::HashMap<String, World>, world: &mut World) {
+    let helmet = asset_importer::add_model_to_world("Damaged Helmet", models, world, None)
+        .expect("Could not find Damaged Helmet");
+
+    {
+        let mut local_transform = world.get::<&mut LocalTransform>(helmet).unwrap();
+        local_transform.translation.z = -1.;
+        local_transform.translation.y = 10.4;
+        local_transform.scale = [0.5, 0.5, 0.5].into();
+    }
+
+    // let collider = Collider::new(SharedShape::ball(0.35));
+
+    world
+        .insert_one(helmet, DynamicPhysicsBody::new_sphere(0.35))
+        .unwrap();
 }
