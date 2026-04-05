@@ -20,7 +20,7 @@ pub const PARTICLE_COUNT: u32 = 512;
 
 pub struct Renderer {
     descriptors: Descriptors,
-    allocator: Allocator,
+    pub allocator: Allocator,
     pub line_renderer: LineRenderer,
 }
 

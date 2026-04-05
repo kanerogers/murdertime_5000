@@ -8,7 +8,9 @@ struct RenderData<'a> {
 
 pub fn draw_physics_lines(debug_lines: &mut Vec<DebugLine>, physics: &super::Physics) {
     let mut settings: joltc_sys::JPC_BodyManager_DrawSettings = unsafe { std::mem::zeroed() };
-    settings.mDrawBoundingBox = true;
+    settings.mDrawShape = true;
+    settings.mDrawShapeWireframe = true;
+    // settings.mDrawBoundingBox = true;
     settings.mDrawCenterOfMassTransform = true;
     settings.mDrawWorldTransform = true;
 

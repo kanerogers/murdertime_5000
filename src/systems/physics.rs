@@ -18,7 +18,9 @@ pub fn physics_system(
     debug_lines: &mut Vec<DebugLine>,
 ) {
     physics.update(DELTA_TIME);
-    physics::debug::draw_physics_lines(debug_lines, physics);
+    if false {
+        physics::debug::draw_physics_lines(debug_lines, physics);
+    }
 
     sync_body_positions(&engine.world, physics, command_buffer);
 }
@@ -40,10 +42,8 @@ pub fn sync_body_positions(
         .iter()
     {
         if let Some(inserted_body) = maybe_inserted_body {
-            body_interface.set_position(
-                inserted_body.body_id,
-                transform.translation - body.y_offset(),
-            );
+            body_interface
+                .set_position(inserted_body.body_id, transform.translation - body.y_offset);
             body_interface.set_rotation(inserted_body.body_id, transform.rotation);
             continue;
         }
@@ -66,8 +66,7 @@ pub fn sync_body_positions(
         .iter()
     {
         if let Some(inserted_body) = maybe_inserted_body {
-            transform.translation =
-                body_interface.position(inserted_body.body_id) + body.y_offset();
+            transform.translation = body_interface.position(inserted_body.body_id) + body.y_offset;
             transform.rotation = body_interface.rotation(inserted_body.body_id);
             continue;
         }

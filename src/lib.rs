@@ -10,7 +10,7 @@ use crate::{
     components::{DynamicPhysicsBody, KinematicPhysicsBody},
     graphics::renderer::Renderer,
     physics::Physics,
-    viking::spawn_viking,
+    viking::spawn_vikings,
 };
 use hotham::{
     asset_importer,
@@ -24,6 +24,14 @@ use hotham::{
 use log::info;
 
 pub const DELTA_TIME: f32 = 1. / 72.;
+pub const UNIT_RADIUS: f32 = 0.5;
+pub const UNIT_COUNT: usize = 20;
+pub const UNIT_HEIGHT: f32 = 1.5;
+pub const UNIT_HALF_HEIGHT: f32 = UNIT_HEIGHT / 2.0;
+pub const UNIT_MAX_HEALTH: u32 = 8;
+pub const SEPARATION_STRENGTH: f32 = 5.0;
+pub const UNIT_INITIAL_TARGET_RADIUS: f32 = 20.;
+pub const SPAWN_RADIUS: f32 = 10.;
 
 #[cfg_attr(target_os = "android", ndk_glue::main(backtrace = "on"))]
 pub fn main() {
@@ -33,9 +41,9 @@ pub fn main() {
 }
 
 pub fn real_main() -> HothamResult<()> {
-    env_logger::builder()
+    let _ = env_logger::builder()
         .filter_module("murdertime_5000", log::LevelFilter::Trace)
-        .init();
+        .try_init();
 
     info!("Initialising fireflies..");
     info!("Building engine..");
@@ -72,15 +80,18 @@ fn tick(
     engine: &mut Engine,
     physics: &mut Physics,
     renderer: &mut Renderer,
-    sim: &mut Simulation,
+    simulation: &mut Simulation,
 ) {
     // Gameplay loop
+    renderer.allocator.transfers_complete();
     let mut debug_lines = Vec::new();
 
     if tick_data.current_state == xr::SessionState::FOCUSED {
         let mut command_buffer = hecs::CommandBuffer::new();
         // Custom physics
         systems::physics::physics_system(engine, physics, &mut command_buffer, &mut debug_lines);
+
+        systems::unit_movement::unit_movement_system(engine, simulation);
 
         // Bzzzt
         hotham::systems::haptics_system(engine);
@@ -91,7 +102,7 @@ fn tick(
     }
 
     let views = engine.xr_context.update_views().to_owned();
-    sim.update(engine, &views);
+    simulation.update(engine, &views);
 
     // Rendering loop
     unsafe {
@@ -109,7 +120,7 @@ fn tick(
         rendering::draw_world(&mut engine.vulkan_context, &mut engine.render_context);
 
         // Debug lines
-        renderer.render(engine, sim);
+        renderer.render(engine, simulation);
 
         rendering::end(&mut engine.vulkan_context, &mut engine.render_context);
     }
@@ -195,8 +206,7 @@ fn init(engine: &mut Engine) -> Result<HashMap<String, hecs::World>, hotham::Hot
         asset_importer::load_models_from_glb(&glb_buffers, vulkan_context, render_context)?;
 
     add_floor(&models, world);
-    add_helmet(&models, world);
-    spawn_viking(engine, &models);
+    spawn_vikings(engine, &models);
 
     // Update global transforms from local transforms before physics_system gets confused
     update_global_transform_system(engine);
@@ -212,24 +222,13 @@ fn add_floor(models: &std::collections::HashMap<String, World>, world: &mut Worl
     //     body_type: BodyType::Fixed,
     //     ..Default::default()
     // };
-    world
-        .insert_one(entity, KinematicPhysicsBody::new_box(5.0, 0.5, 5.0))
-        .unwrap();
-}
-
-fn add_helmet(models: &std::collections::HashMap<String, World>, world: &mut World) {
-    let helmet = asset_importer::add_model_to_world("Damaged Helmet", models, world, None)
-        .expect("Could not find Damaged Helmet");
-
+    //
     {
-        let mut local_transform = world.get::<&mut LocalTransform>(helmet).unwrap();
-        local_transform.translation.y = 10.3;
-        local_transform.scale = [0.5, 0.5, 0.5].into();
+        let mut transform = world.get::<&mut LocalTransform>(entity).unwrap();
+        transform.scale = glam::Vec3::new(2.0, 1.0, 2.0);
     }
 
-    // let collider = Collider::new(SharedShape::ball(0.35));
-
     world
-        .insert_one(helmet, DynamicPhysicsBody::new_sphere(0.35))
+        .insert_one(entity, KinematicPhysicsBody::new_box(10.0, 0.5, 10.0))
         .unwrap();
 }

@@ -1,15 +1,19 @@
+pub mod unit;
+
 use hotham::glam;
 use rolt::BodyId;
 
 #[derive(Debug, Clone)]
 pub struct DynamicPhysicsBody {
     pub shape_kind: ShapeKind,
+    pub y_offset: glam::Vec3,
 }
 
 impl DynamicPhysicsBody {
     pub fn new_sphere(radius: f32) -> DynamicPhysicsBody {
         DynamicPhysicsBody {
             shape_kind: ShapeKind::Sphere { radius },
+            y_offset: glam::Vec3::Y * radius,
         }
     }
 
@@ -19,15 +23,7 @@ impl DynamicPhysicsBody {
                 half_height,
                 radius,
             },
-        }
-    }
-
-    pub fn y_offset(&self) -> f32 {
-        match self.shape_kind {
-            ShapeKind::Cube { half_extents } => half_extents,
-            ShapeKind::Box { half_y, .. } => half_y,
-            ShapeKind::Sphere { radius } => radius,
-            ShapeKind::Capsule { half_height, .. } => half_height,
+            y_offset: glam::Vec3::Y * half_height,
         }
     }
 }
@@ -35,6 +31,7 @@ impl DynamicPhysicsBody {
 #[derive(Debug, Clone)]
 pub struct KinematicPhysicsBody {
     pub shape_kind: ShapeKind,
+    pub y_offset: glam::Vec3,
 }
 
 impl KinematicPhysicsBody {
@@ -45,6 +42,7 @@ impl KinematicPhysicsBody {
                 half_y,
                 half_z,
             },
+            y_offset: glam::Vec3::Y * half_y,
         }
     }
 
@@ -54,15 +52,7 @@ impl KinematicPhysicsBody {
                 half_height,
                 radius,
             },
-        }
-    }
-
-    pub fn y_offset(&self) -> f32 {
-        match self.shape_kind {
-            ShapeKind::Cube { half_extents } => half_extents,
-            ShapeKind::Box { half_y, .. } => half_y,
-            ShapeKind::Sphere { radius } => radius,
-            ShapeKind::Capsule { half_height, .. } => half_height,
+            y_offset: glam::Vec3::Y * half_height,
         }
     }
 }
