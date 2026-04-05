@@ -1,7 +1,7 @@
-use crate::allocator::find_memory;
-use crate::allocator::Offset;
-use crate::allocator::GLOBAL_MEMORY_SIZE;
-use crate::renderer::FULL_IMAGE;
+use crate::graphics::allocator::find_memory;
+use crate::graphics::allocator::Offset;
+use crate::graphics::allocator::GLOBAL_MEMORY_SIZE;
+use crate::graphics::renderer::FULL_IMAGE;
 use std::ptr::NonNull;
 
 use hotham::vk;

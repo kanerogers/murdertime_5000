@@ -2,7 +2,7 @@ use std::ptr::NonNull;
 
 use hotham::vk;
 
-use crate::allocator::{find_memory, STAGING_MEMORY_SIZE};
+use crate::graphics::allocator::{find_memory, STAGING_MEMORY_SIZE};
 
 pub struct StagingBuffer {
     pub handle: vk::Buffer,

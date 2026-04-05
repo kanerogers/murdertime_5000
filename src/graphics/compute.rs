@@ -26,7 +26,7 @@ impl<Registers: bytemuck::Pod> ComputePipeline<Registers> {
                         .stage(
                             vk::PipelineShaderStageCreateInfo::default()
                                 .stage(vk::ShaderStageFlags::COMPUTE)
-                                .module(crate::pipeline::load_module(module, &context))
+                                .module(super::pipeline::load_module(module, &context))
                                 .name(c"main"),
                         )],
                     None,

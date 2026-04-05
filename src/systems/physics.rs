@@ -6,7 +6,8 @@ use hotham::{
 
 use crate::{
     components::{DynamicPhysicsBody, InsertedPhysicsBody, KinematicPhysicsBody},
-    physics::Physics,
+    graphics::line_renderer::DebugLine,
+    physics::{self, Physics},
     DELTA_TIME,
 };
 
@@ -14,8 +15,11 @@ pub fn physics_system(
     engine: &mut Engine,
     physics: &mut Physics,
     command_buffer: &mut CommandBuffer,
+    debug_lines: &mut Vec<DebugLine>,
 ) {
     physics.update(DELTA_TIME);
+    physics::debug::draw_physics_lines(debug_lines, physics);
+
     sync_body_positions(&engine.world, physics, command_buffer);
 }
 

@@ -5,10 +5,20 @@ use rolt::BodyId;
 pub struct DynamicPhysicsBody {
     pub shape_kind: ShapeKind,
 }
+
 impl DynamicPhysicsBody {
     pub fn new_sphere(radius: f32) -> DynamicPhysicsBody {
         DynamicPhysicsBody {
             shape_kind: ShapeKind::Sphere { radius },
+        }
+    }
+
+    pub fn new_capsule(half_height: f32, radius: f32) -> Self {
+        Self {
+            shape_kind: ShapeKind::Capsule {
+                half_height,
+                radius,
+            },
         }
     }
 
@@ -34,6 +44,15 @@ impl KinematicPhysicsBody {
                 half_x,
                 half_y,
                 half_z,
+            },
+        }
+    }
+
+    pub fn new_capsule(half_height: f32, radius: f32) -> Self {
+        Self {
+            shape_kind: ShapeKind::Capsule {
+                half_height,
+                radius,
             },
         }
     }

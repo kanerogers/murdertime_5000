@@ -1,3 +1,5 @@
+pub mod debug;
+
 use hotham::glam;
 use joltc_sys::*;
 use rolt::{

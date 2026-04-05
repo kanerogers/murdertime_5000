@@ -1,8 +1,7 @@
 #![allow(unused)]
 
+use super::descriptors::Descriptors;
 use hotham::vk;
-
-use crate::descriptors::Descriptors;
 use hotham::DEPTH_FORMAT;
 
 #[derive(Clone)]
@@ -19,6 +18,7 @@ impl Pipeline {
     // TODO: Watch shaders!
     pub fn new<Registers>(
         context: &hotham::contexts::VulkanContext,
+        render_pass: vk::RenderPass,
         descriptors: &Descriptors,
         colour_format: vk::Format,
         vertex_shader: &[u8],
@@ -41,6 +41,7 @@ impl Pipeline {
 
         let handle = create_pipeline::<Registers>(
             &context,
+            render_pass,
             colour_format,
             &options,
             layout,
@@ -94,6 +95,7 @@ impl Pipeline {
 
 fn create_pipeline<Registers>(
     context: &hotham::contexts::VulkanContext,
+    render_pass: vk::RenderPass,
     colour_format: vk::Format,
     options: &PipelineOptions,
     layout: vk::PipelineLayout,
@@ -124,6 +126,7 @@ fn create_pipeline<Registers>(
         device.create_graphics_pipelines(
             vk::PipelineCache::null(),
             &[vk::GraphicsPipelineCreateInfo::default()
+                .render_pass(render_pass)
                 .stages(&[
                     vk::PipelineShaderStageCreateInfo::default()
                         .name(c"main")
@@ -172,7 +175,7 @@ fn create_pipeline<Registers>(
                 )
                 .multisample_state(
                     &vk::PipelineMultisampleStateCreateInfo::default()
-                        .rasterization_samples(vk::SampleCountFlags::TYPE_1),
+                        .rasterization_samples(vk::SampleCountFlags::TYPE_4),
                 )
                 .layout(layout)
                 .push_next(
