@@ -13,6 +13,11 @@ pub fn weapon_movement_system(engine: &mut Engine, simulation: &mut Simulation) 
     let left_input = &input.left;
     let right_input = &input.right;
 
+    let stage_transform = engine
+        .world
+        .get::<&LocalTransform>(engine.stage_entity)
+        .unwrap();
+
     for (_, (weapon, transform)) in engine
         .world
         .query::<(&Weapon, &mut LocalTransform)>()
@@ -20,11 +25,11 @@ pub fn weapon_movement_system(engine: &mut Engine, simulation: &mut Simulation) 
     {
         match (weapon.hand, &weapon.kind) {
             (Handedness::Left, WeaponKind::GatlingGun { .. }) => {
-                transform.translation = left_input.aim_position();
+                transform.translation = stage_transform.translation + left_input.aim_position();
                 transform.rotation = left_input.aim_rotation();
             }
             (Handedness::Right, WeaponKind::GatlingGun { .. }) => {
-                transform.translation = right_input.aim_position();
+                transform.translation = stage_transform.translation + right_input.aim_position();
                 transform.rotation = right_input.aim_rotation();
             }
         }

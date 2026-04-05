@@ -32,12 +32,16 @@ pub fn weapon_firing_system(
                     *cooldown -= DELTA_TIME;
                     if *cooldown <= 0. {
                         // Fire
-                        let position = left_input.aim_position();
-                        let velocity =
-                            (left_input.aim_rotation() * glam::Vec3::NEG_Z) * PROJECTILE_SPEED;
-                        command_buffer
-                            .spawn((transform.clone(), Projectile::new(position, velocity)));
+                        let aim_direction = left_input.aim_rotation() * glam::Vec3::NEG_Z;
+                        let velocity = aim_direction * PROJECTILE_SPEED;
+                        let position = transform.translation + (aim_direction * 0.3);
+
+                        command_buffer.spawn((Projectile::new(position, velocity),));
                         *cooldown = FIRING_COOLDOWN;
+
+                        engine
+                            .haptic_context
+                            .request_haptic_feedback(100., Handedness::Left);
                     }
                 } else {
                     *cooldown = 0.;
@@ -48,12 +52,16 @@ pub fn weapon_firing_system(
                     *cooldown -= DELTA_TIME;
                     if *cooldown <= 0. {
                         // Fire
-                        let position = right_input.aim_position();
-                        let velocity =
-                            (right_input.aim_rotation() * glam::Vec3::NEG_Z) * PROJECTILE_SPEED;
-                        command_buffer
-                            .spawn((transform.clone(), Projectile::new(position, velocity)));
+                        let aim_direction = right_input.aim_rotation() * glam::Vec3::NEG_Z;
+                        let velocity = aim_direction * PROJECTILE_SPEED;
+                        let position = transform.translation + (aim_direction * 0.3);
+
+                        command_buffer.spawn((Projectile::new(position, velocity),));
                         *cooldown = FIRING_COOLDOWN;
+
+                        engine
+                            .haptic_context
+                            .request_haptic_feedback(100., Handedness::Right);
                     }
                 } else {
                     *cooldown = 0.;

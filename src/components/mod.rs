@@ -133,11 +133,10 @@ pub struct Projectile {
 
 pub const PROJECTILE_DAMAGE: f32 = 10.;
 pub const PROJECTILE_LIFETIME: f32 = 3.0;
-pub const PROJECTILE_SPEED: f32 = 10.0;
+pub const PROJECTILE_SPEED: f32 = 50.0;
 
 impl Projectile {
     pub fn new(position: glam::Vec3, velocity: glam::Vec3) -> Self {
-        let position = position + (velocity * 0.1);
         Self {
             position,
             previous_position: position,
@@ -146,4 +145,9 @@ impl Projectile {
             lifetime: PROJECTILE_LIFETIME,
         }
     }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct Jetpack {
+    pub velocity: glam::Vec3,
 }

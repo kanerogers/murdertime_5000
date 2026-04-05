@@ -1,3 +1,4 @@
+use hotham::glam;
 use hotham::vk;
 use hotham::Engine;
 
@@ -42,11 +43,24 @@ impl Renderer {
         }
     }
 
-    pub fn update_lines(&mut self, debug_lines: Vec<DebugLine>) {
+    pub fn update_lines(
+        &mut self,
+        mut debug_lines: Vec<DebugLine>,
+        global_from_stage: glam::Affine3A,
+    ) {
         self.line_renderer.lines.clear();
-        self.line_renderer
-            .lines
-            .append(&debug_lines, &mut self.allocator);
+        let gos_from_global =
+            glam::Affine3A::from_translation(glam::Vec3::from(global_from_stage.translation))
+                .inverse();
+
+        for mut line in debug_lines.drain(..) {
+            line.start = gos_from_global.transform_point3(line.start);
+            line.end = gos_from_global.transform_point3(line.end);
+
+            self.line_renderer
+                .lines
+                .append_one(&line, &mut self.allocator);
+        }
     }
 
     pub fn execute_transfers(&mut self, engine: &mut Engine) {

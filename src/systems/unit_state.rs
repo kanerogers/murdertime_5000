@@ -1,4 +1,4 @@
-use hotham::Engine;
+use hotham::{components::LocalTransform, Engine};
 
 use crate::{components::unit::Unit, Simulation};
 

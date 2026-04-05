@@ -7,7 +7,7 @@ mod viking;
 use std::collections::HashMap;
 
 use crate::{
-    components::{DynamicPhysicsBody, KinematicPhysicsBody, Weapon, WeaponKind},
+    components::{Jetpack, KinematicPhysicsBody, Weapon, WeaponKind},
     graphics::renderer::Renderer,
     physics::Physics,
     viking::spawn_vikings,
@@ -91,6 +91,8 @@ fn tick(
         // Custom physics
         systems::physics::physics_system(engine, physics, &mut command_buffer, &mut debug_lines);
 
+        systems::jetpack_system::jetpack_system(engine);
+
         // Weapons
         systems::weapon_movement::weapon_movement_system(engine, simulation);
         systems::weapon_firing::weapon_firing_system(engine, simulation, &mut command_buffer);
@@ -124,7 +126,8 @@ fn tick(
 
     // Rendering loop
     unsafe {
-        renderer.update_lines(debug_lines);
+        let global_from_stage = hotham::components::stage::get_global_from_stage(&engine.world);
+        renderer.update_lines(debug_lines, global_from_stage);
         renderer.execute_transfers(engine);
         rendering::begin(
             &mut engine.world,
@@ -159,10 +162,11 @@ impl Simulation {
     pub fn update(&mut self, engine: &mut Engine, views: &[xr::View]) {
         self.left_hand_pos = engine.input_context.left.grip_position();
         self.right_hand_pos = engine.input_context.right.grip_position();
-        self.head_pos = engine.input_context.hmd.position();
 
         // Create transformations to globally oriented stage space
         let global_from_stage = hotham::components::stage::get_global_from_stage(&engine.world);
+        self.head_pos =
+            glam::Vec3::from(global_from_stage.translation) + engine.input_context.hmd.position();
 
         // `gos_from_global` is just the inverse of `global_from_stage`'s translation - rotation is ignored.
         let gos_from_global =
@@ -229,6 +233,11 @@ fn init(engine: &mut Engine) -> Result<HashMap<String, hecs::World>, hotham::Hot
 
     // Update global transforms from local transforms before physics_system gets confused
     update_global_transform_system(engine);
+
+    engine
+        .world
+        .insert_one(engine.stage_entity, Jetpack::default())
+        .unwrap();
 
     Ok(models)
 }
