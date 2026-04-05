@@ -32,8 +32,7 @@ pub fn spawn_vikings(engine: &mut Engine, models: &HashMap<String, hecs::World>)
             id: id as u32,
             position,
             rotation: Default::default(),
-            target_position: Default::default(),
-            combat_status: Default::default(),
+            status: Default::default(),
             health: Default::default(),
         };
 

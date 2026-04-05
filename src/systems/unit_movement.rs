@@ -78,9 +78,6 @@ pub fn unit_movement_system(engine: &mut hotham::Engine, simulation: &mut Simula
     for (unit_index, entity) in unit_entities.iter().enumerate() {
         let mut unit = engine.world.get::<&mut Unit>(*entity).unwrap();
 
-        // This is your existing target motion (constant speed + stop distance).
-        unit.move_towards_target(DELTA_TIME, hmd_position);
-
         // Now apply the separation as an extra displacement.
         unit.position += separation_velocities[unit_index] * DELTA_TIME;
 

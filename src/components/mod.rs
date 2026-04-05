@@ -1,7 +1,18 @@
 pub mod unit;
 
-use hotham::glam;
+use hotham::{components::hand::Handedness, glam};
 use rolt::BodyId;
+
+#[derive(Debug, Clone)]
+pub struct Weapon {
+    pub hand: Handedness,
+    pub kind: WeaponKind,
+}
+
+#[derive(Debug, Clone)]
+pub enum WeaponKind {
+    GatlingGun { cooldown: f32 },
+}
 
 #[derive(Debug, Clone)]
 pub struct DynamicPhysicsBody {

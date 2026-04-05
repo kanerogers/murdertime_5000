@@ -7,14 +7,14 @@ mod viking;
 use std::collections::HashMap;
 
 use crate::{
-    components::{DynamicPhysicsBody, KinematicPhysicsBody},
+    components::{DynamicPhysicsBody, KinematicPhysicsBody, Weapon, WeaponKind},
     graphics::renderer::Renderer,
     physics::Physics,
     viking::spawn_vikings,
 };
 use hotham::{
     asset_importer,
-    components::LocalTransform,
+    components::{hand::Handedness, LocalTransform},
     glam,
     hecs::{self, World},
     rendering::camera::Frustum,
@@ -91,7 +91,11 @@ fn tick(
         // Custom physics
         systems::physics::physics_system(engine, physics, &mut command_buffer, &mut debug_lines);
 
-        // Movement
+        // Weapon movement
+        systems::weapon_movement::weapon_movement_system(engine, simulation);
+
+        // Units
+        systems::unit_state::unit_state_system(engine, simulation);
         systems::unit_movement::unit_movement_system(engine, simulation);
 
         // Custom animations
@@ -143,8 +147,8 @@ pub struct Simulation {
 
 impl Simulation {
     pub fn update(&mut self, engine: &mut Engine, views: &[xr::View]) {
-        self.left_hand_pos = engine.input_context.left.position();
-        self.right_hand_pos = engine.input_context.right.position();
+        self.left_hand_pos = engine.input_context.left.grip_position();
+        self.right_hand_pos = engine.input_context.right.grip_position();
         self.head_pos = engine.input_context.hmd.position();
 
         // Create transformations to globally oriented stage space
@@ -194,8 +198,8 @@ fn init(engine: &mut Engine) -> Result<HashMap<String, hecs::World>, hotham::Hot
 
     let glb_buffers: Vec<&[u8]> = vec![
         include_bytes!("../assets/floor.glb"),
-        include_bytes!("../assets/damaged_helmet_squished.glb"),
         include_bytes!("../assets/1_Viking_Male_1.glb"),
+        include_bytes!("../assets/gatling_gun.glb"),
         // include_bytes!("../assets/2_Viking_Male_2.glb"),
         // include_bytes!("../assets/3_Viking_Male_3.glb"),
         // include_bytes!("../assets/4_Viking_Male_4.glb"),
@@ -211,11 +215,42 @@ fn init(engine: &mut Engine) -> Result<HashMap<String, hecs::World>, hotham::Hot
 
     add_floor(&models, world);
     spawn_vikings(engine, &models);
+    add_weapons(engine, &models);
 
     // Update global transforms from local transforms before physics_system gets confused
     update_global_transform_system(engine);
 
     Ok(models)
+}
+
+fn add_weapons(engine: &mut Engine, models: &HashMap<String, World>) {
+    let world = &mut engine.world;
+    let left_gun = asset_importer::add_model_to_world("SM_Wep_GattlingGun_01", models, world, None)
+        .expect("Could not find gatling gun");
+
+    world
+        .insert_one(
+            left_gun,
+            Weapon {
+                hand: Handedness::Left,
+                kind: WeaponKind::GatlingGun { cooldown: 0. },
+            },
+        )
+        .unwrap();
+
+    let right_gun =
+        asset_importer::add_model_to_world("SM_Wep_GattlingGun_01", models, world, None)
+            .expect("Could not find gatling gun");
+
+    world
+        .insert_one(
+            right_gun,
+            Weapon {
+                hand: Handedness::Right,
+                kind: WeaponKind::GatlingGun { cooldown: 0. },
+            },
+        )
+        .unwrap();
 }
 
 fn add_floor(models: &std::collections::HashMap<String, World>, world: &mut World) {

@@ -11,7 +11,14 @@ pub fn unit_animation_system(engine: &mut Engine, simulation: &mut Simulation) {
         .query::<(&Unit, &mut AnimationController)>()
         .iter()
     {
-        controller.set_current_animation("ID_11_Viking_Male_1_Walking");
+        let desired_animation = match unit.status {
+            crate::components::unit::UnitStatus::Idle => "ID_10_Viking_Male_1_Idle",
+            crate::components::unit::UnitStatus::Attacking { .. } => {
+                "ID_9_Viking_Male_1_Smash_Object"
+            }
+            crate::components::unit::UnitStatus::Moving => "ID_11_Viking_Male_1_Walking",
+        };
+        controller.set_current_animation(desired_animation);
         controller.advance_animation();
 
         let Some(animation_state) = controller.current_animation() else {
