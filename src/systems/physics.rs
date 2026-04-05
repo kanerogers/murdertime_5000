@@ -1,5 +1,5 @@
 use hotham::{
-    components::LocalTransform,
+    components::{GlobalTransform, LocalTransform},
     hecs::{self, CommandBuffer},
     Engine,
 };
@@ -36,20 +36,20 @@ pub fn sync_body_positions(
     for (entity, (maybe_inserted_body, transform, body)) in world
         .query::<(
             Option<&InsertedPhysicsBody>,
-            &mut LocalTransform,
+            &LocalTransform,
             &KinematicPhysicsBody,
         )>()
         .iter()
     {
+        let (translation, rotation, _) = (transform.translation, transform.rotation, ());
         if let Some(inserted_body) = maybe_inserted_body {
-            body_interface
-                .set_position(inserted_body.body_id, transform.translation - body.y_offset);
-            body_interface.set_rotation(inserted_body.body_id, transform.rotation);
+            body_interface.set_position(inserted_body.body_id, translation - body.y_offset);
+            body_interface.set_rotation(inserted_body.body_id, rotation);
             continue;
         }
 
         // No body exists, create one
-        let inserted_body = physics.create_kinematic_body(transform.translation, body);
+        let inserted_body = physics.create_kinematic_body(translation, body);
 
         body_interface.set_user_data(inserted_body.body_id, entity.to_bits().get());
 

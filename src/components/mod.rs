@@ -1,6 +1,6 @@
 pub mod unit;
 
-use hotham::{components::hand::Handedness, glam};
+use hotham::{components::hand::Handedness, glam, hecs::Entity};
 use rolt::BodyId;
 
 #[derive(Debug, Clone)]
@@ -12,6 +12,7 @@ pub struct Weapon {
 #[derive(Debug, Clone)]
 pub enum WeaponKind {
     GatlingGun { cooldown: f32 },
+    Hammer { hit_entity: Entity },
 }
 
 #[derive(Debug, Clone)]

@@ -3,8 +3,10 @@ pub mod debug;
 use hotham::{glam, hecs};
 use joltc_sys::*;
 use rolt::{
-    BodyId, BroadPhaseLayer, BroadPhaseLayerInterface, ObjectLayer, ObjectLayerPairFilter,
-    ObjectVsBroadPhaseLayerFilter, PhysicsSystem, Vec3,
+    AllHitCollideShapeCollector, BodyId, BroadPhaseLayer, BroadPhaseLayerInterface, CastShapeArgs,
+    CastShapeCollectorImpl, ClosestHitCastShapeCollector, CollideShapeArgs,
+    CollideShapeCollectorImpl, IntoJolt, ObjectLayer, ObjectLayerPairFilter,
+    ObjectVsBroadPhaseLayerFilter, PhysicsSystem, RShapeCast, RVec3, Vec3,
 };
 use std::ffi::{CStr, CString};
 use std::ptr;
@@ -225,6 +227,70 @@ impl Physics {
         let entity = hecs::Entity::from_bits(user_data).unwrap();
 
         Some(RayHit { entity })
+    }
+
+    pub fn check_for_insersecting(
+        &self,
+        entity_to_check: hecs::Entity,
+        world: &hecs::World,
+    ) -> Vec<hecs::Entity> {
+        let Ok(body) = world.get::<&InsertedPhysicsBody>(entity_to_check) else {
+            return Vec::new();
+        };
+
+        let narrow_phase = self.system.narrow_phase_query();
+        let mut collector = AllHitCollideShapeCollector::new();
+
+        let center_of_mass_start = self
+            .system
+            .body_interface()
+            .center_of_mass_position(body.body_id);
+
+        let capsule_shape = unsafe {
+            JPC_BodyInterface_GetShape(self.system.body_interface().raw(), body.body_id.raw())
+        };
+
+        unsafe {
+            // narrow_phase.cast_shape(CastShapeArgs {
+            //     shapecast: RShapeCast {
+            //         shape: capsule_shape,
+            //         scale: Vec3::ONE,
+            //         center_of_mass_start: rmat44_translation(center_of_mass_start.into_jolt()),
+            //         direction: Vec3::new(0., 0., 0.),
+            //     },
+            //     base_offset: RVec3::ZERO,
+            //     settings: Default::default(),
+            //     collector: Some(CastShapeCollectorImpl::new_borrowed(&mut collector)),
+            //     broad_phase_layer_filter: None,
+            //     object_layer_filter: None,
+            //     body_filter: None,
+            //     shape_filter: None,
+            // })
+            narrow_phase.collide_shape(CollideShapeArgs {
+                shape: capsule_shape,
+                shape_scale: glam::Vec3::ZERO,
+                center_of_mass_transform: rmat44_translation(center_of_mass_start.into_jolt()),
+                settings: Default::default(),
+                base_offset: RVec3::ZERO,
+                collector: Some(CollideShapeCollectorImpl::new_borrowed(&mut collector)),
+                broad_phase_layer_filter: None,
+                object_layer_filter: None,
+                body_filter: None,
+                shape_filter: None,
+            });
+        };
+
+        collector
+            .result
+            .into_iter()
+            .filter_map(|result| {
+                hecs::Entity::from_bits(
+                    self.system
+                        .body_interface()
+                        .user_data(BodyId::new(result.BodyID2)),
+                )
+            })
+            .collect()
     }
 }
 
@@ -518,10 +584,39 @@ impl ToJPC for glam::Quat {
     }
 }
 
+fn rvec3(x: Real, y: Real, z: Real) -> JPC_RVec3 {
+    JPC_RVec3 { x, y, z, _w: z }
+}
+
 fn vec3(x: f32, y: f32, z: f32) -> JPC_Vec3 {
     JPC_Vec3 { x, y, z, _w: z }
 }
 
+fn vec4(x: f32, y: f32, z: f32, w: f32) -> JPC_Vec4 {
+    JPC_Vec4 { x, y, z, w }
+}
+
 pub struct RayHit {
     pub entity: hecs::Entity,
+}
+
+fn rmat44_identity() -> JPC_RMat44 {
+    unsafe {
+        JPC_RMat44 {
+            col: [
+                vec4(1.0, 0.0, 0.0, 0.0),
+                vec4(0.0, 1.0, 0.0, 0.0),
+                vec4(0.0, 0.0, 1.0, 0.0),
+            ],
+            col3: rvec3(0.0, 0.0, 0.0),
+            ..std::mem::zeroed()
+        }
+    }
+}
+
+fn rmat44_translation(col3: JPC_RVec3) -> JPC_RMat44 {
+    JPC_RMat44 {
+        col3,
+        ..rmat44_identity()
+    }
 }

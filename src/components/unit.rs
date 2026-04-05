@@ -24,6 +24,7 @@ impl Unit {
             UnitStatus::Idle => UnitStatus::Moving,
             UnitStatus::Moving => {
                 if self.health.is_dead() {
+                    println!("{} has died!", self.id);
                     UnitStatus::Dying { time_left: 1.0 }
                 } else if self.move_towards_hmd(DELTA_TIME, hmd_position) {
                     UnitStatus::Attacking {
@@ -37,6 +38,7 @@ impl Unit {
                 let cooldown_left = cooldown_left - DELTA_TIME;
 
                 if self.health.is_dead() {
+                    println!("{} has died!", self.id);
                     UnitStatus::Dying { time_left: 1.0 }
                 } else if !self.near_hmd(hmd_position) {
                     UnitStatus::Moving

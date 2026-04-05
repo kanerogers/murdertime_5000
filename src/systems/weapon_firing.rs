@@ -7,6 +7,7 @@ use hotham::{
 
 use crate::{
     components::{Projectile, Weapon, WeaponKind, PROJECTILE_SPEED},
+    physics::Physics,
     Simulation, DELTA_TIME,
 };
 
@@ -16,6 +17,7 @@ pub fn weapon_firing_system(
     engine: &mut Engine,
     simulation: &mut Simulation,
     command_buffer: &mut CommandBuffer,
+    physics: &mut Physics,
 ) {
     let input = &engine.input_context;
     let left_input = &input.left;
@@ -67,6 +69,7 @@ pub fn weapon_firing_system(
                     *cooldown = 0.;
                 }
             }
+            (_, WeaponKind::Hammer { hit_entity }) => {}
         }
     }
 }

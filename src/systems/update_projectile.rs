@@ -8,7 +8,7 @@ use crate::{
     components::{unit::Unit, Projectile},
     graphics::line_renderer::DebugLine,
     physics::Physics,
-    Simulation, DELTA_TIME,
+    DamageEvent, Simulation, DELTA_TIME,
 };
 
 pub fn update_projectile_system(
@@ -57,27 +57,10 @@ pub fn update_projectile_system(
     }
 
     for event in damage_events {
-        apply_damage(&engine.world, event);
+        event.apply(&engine.world);
     }
 
     for entity in to_despawn {
         command_buffer.despawn(entity);
     }
-}
-
-fn apply_damage(world: &hecs::World, event: DamageEvent) {
-    let Ok(mut unit) = world.get::<&mut Unit>(event.target) else {
-        return;
-    };
-
-    unit.health.take_damage(event.amount);
-    println!(
-        "Unit {} took {} damage (now {})",
-        unit.id, event.amount, unit.health.current
-    );
-}
-
-struct DamageEvent {
-    target: hecs::Entity,
-    amount: f32,
 }

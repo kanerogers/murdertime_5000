@@ -7,7 +7,7 @@ use rolt::Quat;
 
 use crate::{components::unit::Unit, Simulation, DELTA_TIME, SEPARATION_STRENGTH, UNIT_RADIUS};
 pub const UNIT_GAP: f32 = 1.5;
-pub const HMD_DISTANCE: f32 = 2.0;
+pub const HMD_DISTANCE: f32 = 1.0;
 
 pub fn unit_movement_system(engine: &mut hotham::Engine, simulation: &mut Simulation) {
     // 1) Gather unit entity ids so we can do pairwise work safely.

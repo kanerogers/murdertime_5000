@@ -7,14 +7,14 @@ mod viking;
 use std::collections::HashMap;
 
 use crate::{
-    components::{Jetpack, KinematicPhysicsBody, Weapon, WeaponKind},
+    components::{unit::Unit, Jetpack, KinematicPhysicsBody, Weapon, WeaponKind},
     graphics::renderer::Renderer,
     physics::Physics,
     viking::spawn_vikings,
 };
 use hotham::{
     asset_importer,
-    components::{hand::Handedness, LocalTransform},
+    components::{hand::Handedness, GlobalTransform, LocalTransform, Parent},
     glam,
     hecs::{self, World},
     rendering::camera::Frustum,
@@ -22,10 +22,11 @@ use hotham::{
     xr, Engine, HothamResult, TickData,
 };
 use log::info;
+use rolt::Quat;
 
 pub const DELTA_TIME: f32 = 1. / 72.;
 pub const UNIT_RADIUS: f32 = 0.5;
-pub const UNIT_COUNT: usize = 1;
+pub const UNIT_COUNT: usize = 20;
 pub const UNIT_HEIGHT: f32 = 1.5;
 pub const UNIT_HALF_HEIGHT: f32 = UNIT_HEIGHT / 2.0;
 pub const UNIT_MAX_HEALTH: f32 = 80.;
@@ -95,7 +96,13 @@ fn tick(
 
         // Weapons
         systems::weapon_movement::weapon_movement_system(engine, simulation);
-        systems::weapon_firing::weapon_firing_system(engine, simulation, &mut command_buffer);
+        systems::weapon_firing::weapon_firing_system(
+            engine,
+            simulation,
+            &mut command_buffer,
+            physics,
+        );
+        systems::hammer_hit::hammer_hit_system(engine, physics);
 
         // Projectiles
         systems::update_projectile::update_projectile_system(
@@ -214,6 +221,7 @@ fn init(engine: &mut Engine) -> Result<HashMap<String, hecs::World>, hotham::Hot
         include_bytes!("../assets/floor.glb"),
         include_bytes!("../assets/1_Viking_Male_1.glb"),
         include_bytes!("../assets/gatling_gun.glb"),
+        include_bytes!("../assets/hammer.glb"),
         // include_bytes!("../assets/2_Viking_Male_2.glb"),
         // include_bytes!("../assets/3_Viking_Male_3.glb"),
         // include_bytes!("../assets/4_Viking_Male_4.glb"),
@@ -229,7 +237,8 @@ fn init(engine: &mut Engine) -> Result<HashMap<String, hecs::World>, hotham::Hot
 
     add_floor(&models, world);
     spawn_vikings(engine, &models);
-    add_weapons(engine, &models);
+    // add_guns(engine, &models);
+    add_hammers(engine, &models);
 
     // Update global transforms from local transforms before physics_system gets confused
     update_global_transform_system(engine);
@@ -242,7 +251,7 @@ fn init(engine: &mut Engine) -> Result<HashMap<String, hecs::World>, hotham::Hot
     Ok(models)
 }
 
-fn add_weapons(engine: &mut Engine, models: &HashMap<String, World>) {
+fn add_guns(engine: &mut Engine, models: &HashMap<String, World>) {
     let world = &mut engine.world;
     let left_gun = asset_importer::add_model_to_world("SM_Wep_GattlingGun_01", models, world, None)
         .expect("Could not find gatling gun");
@@ -272,6 +281,29 @@ fn add_weapons(engine: &mut Engine, models: &HashMap<String, World>) {
         .unwrap();
 }
 
+fn add_hammers(engine: &mut Engine, models: &HashMap<String, World>) {
+    for hand in [Handedness::Left, Handedness::Right] {
+        let world = &mut engine.world;
+        let hammer = asset_importer::add_model_to_world("SM_Wep_Hammer_02", models, world, None)
+            .expect("Could not find hammer");
+
+        // Create a physics body component
+        let mut capsule = KinematicPhysicsBody::new_capsule(0.2, 0.1);
+        capsule.y_offset = glam::Vec3::ZERO;
+        let hit_entity = world.spawn((LocalTransform::default(), capsule));
+
+        world
+            .insert_one(
+                hammer,
+                Weapon {
+                    hand,
+                    kind: WeaponKind::Hammer { hit_entity },
+                },
+            )
+            .unwrap();
+    }
+}
+
 fn add_floor(models: &std::collections::HashMap<String, World>, world: &mut World) {
     let entity = asset_importer::add_model_to_world("Floor", models, world, None)
         .expect("Could not find Floor");
@@ -289,4 +321,29 @@ fn add_floor(models: &std::collections::HashMap<String, World>, world: &mut Worl
     world
         .insert_one(entity, KinematicPhysicsBody::new_box(10.0, 0.5, 10.0))
         .unwrap();
+}
+
+pub struct DamageEvent {
+    pub target: hecs::Entity,
+    pub amount: f32,
+}
+
+impl DamageEvent {
+    pub fn apply(self, world: &hecs::World) -> bool {
+        let Ok(mut unit) = world.get::<&mut Unit>(self.target) else {
+            return false;
+        };
+
+        if unit.health.is_dead() {
+            return false;
+        }
+
+        unit.health.take_damage(self.amount);
+        println!(
+            "Unit {} took {} damage (now {})",
+            unit.id, self.amount, unit.health.current
+        );
+
+        true
+    }
 }
