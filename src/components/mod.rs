@@ -137,6 +137,7 @@ pub const PROJECTILE_SPEED: f32 = 10.0;
 
 impl Projectile {
     pub fn new(position: glam::Vec3, velocity: glam::Vec3) -> Self {
+        let position = position + (velocity * 0.1);
         Self {
             position,
             previous_position: position,

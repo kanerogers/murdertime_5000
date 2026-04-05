@@ -3,27 +3,37 @@ use hotham::{
     hecs, Engine,
 };
 
-use crate::{components::unit::Unit, Simulation};
+use crate::{
+    components::unit::{Unit, UnitStatus},
+    Simulation,
+};
 
-pub fn unit_animation_system(engine: &mut Engine, simulation: &mut Simulation) {
+pub fn unit_animation_system(engine: &mut Engine, _simulation: &mut Simulation) {
     for (entity, (unit, controller)) in engine
         .world
         .query::<(&Unit, &mut AnimationController)>()
         .iter()
     {
         let desired_animation = match unit.status {
-            crate::components::unit::UnitStatus::Idle => "ID_10_Viking_Male_1_Idle",
-            crate::components::unit::UnitStatus::Attacking { .. } => {
-                "ID_9_Viking_Male_1_Smash_Object"
-            }
-            crate::components::unit::UnitStatus::Moving => "ID_11_Viking_Male_1_Walking",
+            UnitStatus::Idle => "ID_10_Viking_Male_1_Idle",
+            UnitStatus::Attacking { .. } => "ID_9_Viking_Male_1_Smash_Object",
+            UnitStatus::Moving => "ID_11_Viking_Male_1_Walking",
+            UnitStatus::Dying { .. } | UnitStatus::Dead => "ID_5_Viking_Male_1_Fall_Over",
         };
-        controller.set_current_animation(desired_animation);
-        controller.advance_animation();
 
-        let Some(animation_state) = controller.current_animation() else {
-            continue;
-        };
+        controller.set_current_animation(desired_animation);
+
+        match unit.status {
+            UnitStatus::Dead => {
+                // Final frame
+                controller.current_animation_mut().unwrap().elapsed = 0.99;
+            }
+            _ => {
+                controller.advance_animation();
+            }
+        }
+
+        let animation_state = controller.current_animation().unwrap();
 
         for target in &animation_state.targets {
             if target.target == entity {

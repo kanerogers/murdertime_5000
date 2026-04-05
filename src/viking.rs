@@ -3,7 +3,10 @@ use std::collections::HashMap;
 use hotham::{asset_importer, components::LocalTransform, glam, hecs, Engine};
 
 use crate::{
-    components::{unit::Unit, KinematicPhysicsBody},
+    components::{
+        unit::{Health, Unit},
+        KinematicPhysicsBody,
+    },
     SPAWN_RADIUS, UNIT_COUNT, UNIT_HALF_HEIGHT, UNIT_RADIUS,
 };
 
@@ -33,7 +36,7 @@ pub fn spawn_vikings(engine: &mut Engine, models: &HashMap<String, hecs::World>)
             position,
             rotation: Default::default(),
             status: Default::default(),
-            health: Default::default(),
+            health: Health::new(),
         };
 
         // Create a physics body component

@@ -1,6 +1,6 @@
 use hotham::glam::{Vec2, Vec3Swizzles};
 
-use crate::{systems::unit_movement::HMD_DISTANCE, DELTA_TIME};
+use crate::{systems::unit_movement::HMD_DISTANCE, DELTA_TIME, UNIT_MAX_HEALTH};
 
 const MOVEMENT_SPEED: f32 = 3.0;
 const ARRIVAL_SLOWDOWN_RADIUS: f32 = 2.0;
@@ -19,10 +19,13 @@ impl Unit {
     pub fn update_state(&mut self, simulation: &mut crate::Simulation) {
         let current_state = std::mem::take(&mut self.status);
         let hmd_position = simulation.head_pos.xz();
+
         self.status = match current_state {
             UnitStatus::Idle => UnitStatus::Moving,
             UnitStatus::Moving => {
-                if self.move_towards_hmd(DELTA_TIME, hmd_position) {
+                if self.health.is_dead() {
+                    UnitStatus::Dying { time_left: 1.0 }
+                } else if self.move_towards_hmd(DELTA_TIME, hmd_position) {
                     UnitStatus::Attacking {
                         cooldown_left: ATTACK_COOLDOWN,
                     }
@@ -33,7 +36,9 @@ impl Unit {
             UnitStatus::Attacking { cooldown_left } => {
                 let cooldown_left = cooldown_left - DELTA_TIME;
 
-                if !self.near_hmd(hmd_position) {
+                if self.health.is_dead() {
+                    UnitStatus::Dying { time_left: 1.0 }
+                } else if !self.near_hmd(hmd_position) {
                     UnitStatus::Moving
                 } else if cooldown_left < 0.0 {
                     // Do attack!
@@ -44,6 +49,15 @@ impl Unit {
                     UnitStatus::Attacking { cooldown_left }
                 }
             }
+            UnitStatus::Dying { time_left } => {
+                let time_left = time_left - DELTA_TIME;
+                if time_left < 0.0 {
+                    UnitStatus::Dead
+                } else {
+                    UnitStatus::Dying { time_left }
+                }
+            }
+            UnitStatus::Dead => UnitStatus::Dead,
         };
     }
 
@@ -96,6 +110,10 @@ pub enum UnitStatus {
         cooldown_left: f32,
     },
     Moving,
+    Dying {
+        time_left: f32,
+    },
+    Dead,
 }
 
 #[derive(Default, Debug, Clone)]
@@ -105,11 +123,18 @@ pub struct Health {
 }
 
 impl Health {
+    pub fn new() -> Self {
+        Self {
+            max: UNIT_MAX_HEALTH,
+            current: UNIT_MAX_HEALTH,
+        }
+    }
+
     pub fn take_damage(&mut self, amount: f32) {
         self.current = (self.current - amount).max(0.);
     }
 
     pub fn is_dead(&self) -> bool {
-        self.current >= 0.
+        self.current <= 0.
     }
 }
