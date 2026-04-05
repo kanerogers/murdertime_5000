@@ -91,7 +91,11 @@ fn tick(
         // Custom physics
         systems::physics::physics_system(engine, physics, &mut command_buffer, &mut debug_lines);
 
+        // Movement
         systems::unit_movement::unit_movement_system(engine, simulation);
+
+        // Custom animations
+        systems::unit_animation::unit_animation_system(engine, simulation);
 
         // Bzzzt
         hotham::systems::haptics_system(engine);
