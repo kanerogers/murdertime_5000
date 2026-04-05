@@ -1,6 +1,6 @@
 pub mod debug;
 
-use hotham::glam;
+use hotham::{glam, hecs};
 use joltc_sys::*;
 use rolt::{
     BodyId, BroadPhaseLayer, BroadPhaseLayerInterface, ObjectLayer, ObjectLayerPairFilter,
@@ -209,6 +209,22 @@ impl Physics {
         };
 
         InsertedPhysicsBody { body_id }
+    }
+
+    pub fn raycast(&self, origin: Vec3, direction: Vec3) -> Option<RayHit> {
+        let narrow_phase = self.system.narrow_phase_query();
+        let result = narrow_phase.cast_ray(rolt::RayCastArgs {
+            ray: rolt::RRayCast { origin, direction },
+            broad_phase_layer_filter: None,
+            object_layer_filter: None,
+            body_filter: None,
+            shape_filter: None,
+        })?;
+
+        let user_data = self.system.body_interface().user_data(result.body_id);
+        let entity = hecs::Entity::from_bits(user_data).unwrap();
+
+        Some(RayHit { entity })
     }
 }
 
@@ -504,4 +520,8 @@ impl ToJPC for glam::Quat {
 
 fn vec3(x: f32, y: f32, z: f32) -> JPC_Vec3 {
     JPC_Vec3 { x, y, z, _w: z }
+}
+
+pub struct RayHit {
+    pub entity: hecs::Entity,
 }

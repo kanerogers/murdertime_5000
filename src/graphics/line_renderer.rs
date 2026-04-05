@@ -66,9 +66,9 @@ impl LineRenderer {
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct DebugLine {
-    start: glam::Vec3,
-    end: glam::Vec3,
-    colour: glam::Vec3,
+    pub start: glam::Vec3,
+    pub end: glam::Vec3,
+    pub colour: glam::Vec3,
 }
 
 unsafe impl bytemuck::Pod for DebugLine {}

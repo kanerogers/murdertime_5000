@@ -25,7 +25,7 @@ use log::info;
 
 pub const DELTA_TIME: f32 = 1. / 72.;
 pub const UNIT_RADIUS: f32 = 0.5;
-pub const UNIT_COUNT: usize = 20;
+pub const UNIT_COUNT: usize = 1;
 pub const UNIT_HEIGHT: f32 = 1.5;
 pub const UNIT_HALF_HEIGHT: f32 = UNIT_HEIGHT / 2.0;
 pub const UNIT_MAX_HEALTH: u32 = 8;
@@ -91,8 +91,18 @@ fn tick(
         // Custom physics
         systems::physics::physics_system(engine, physics, &mut command_buffer, &mut debug_lines);
 
-        // Weapon movement
+        // Weapons
         systems::weapon_movement::weapon_movement_system(engine, simulation);
+        systems::weapon_firing::weapon_firing_system(engine, simulation, &mut command_buffer);
+
+        // Projectiles
+        systems::update_projectile::update_projectile_system(
+            engine,
+            simulation,
+            physics,
+            &mut command_buffer,
+            &mut debug_lines,
+        );
 
         // Units
         systems::unit_state::unit_state_system(engine, simulation);

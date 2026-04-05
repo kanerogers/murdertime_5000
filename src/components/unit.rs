@@ -100,6 +100,16 @@ pub enum UnitStatus {
 
 #[derive(Default, Debug, Clone)]
 pub struct Health {
-    pub max: u32,
-    pub current: u32,
+    pub max: f32,
+    pub current: f32,
+}
+
+impl Health {
+    pub fn take_damage(&mut self, amount: f32) {
+        self.current = (self.current - amount).max(0.);
+    }
+
+    pub fn is_dead(&self) -> bool {
+        self.current >= 0.
+    }
 }

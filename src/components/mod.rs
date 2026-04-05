@@ -122,3 +122,27 @@ impl LocalAABB {
         self.max = self.max.max(point_in_local_space);
     }
 }
+
+pub struct Projectile {
+    pub position: glam::Vec3,
+    pub previous_position: glam::Vec3,
+    pub velocity: glam::Vec3,
+    pub damage: f32,
+    pub lifetime: f32,
+}
+
+pub const PROJECTILE_DAMAGE: f32 = 10.;
+pub const PROJECTILE_LIFETIME: f32 = 3.0;
+pub const PROJECTILE_SPEED: f32 = 10.0;
+
+impl Projectile {
+    pub fn new(position: glam::Vec3, velocity: glam::Vec3) -> Self {
+        Self {
+            position,
+            previous_position: position,
+            velocity,
+            damage: PROJECTILE_DAMAGE,
+            lifetime: PROJECTILE_LIFETIME,
+        }
+    }
+}

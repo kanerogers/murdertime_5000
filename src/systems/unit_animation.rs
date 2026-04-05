@@ -80,14 +80,14 @@ fn apply_animation(
     }
 
     let Some(previous_index) = previous_index else {
-        println!(
-            "No previous index? Elapsed {elapsed:?}, Duration {duration:?}, Times: {}",
-            time_values.len()
-        );
+        // log::debug!(
+        //     "No previous index? Elapsed {elapsed:?}, Duration {duration:?}, Times: {}",
+        //     time_values.len()
+        // );
         return;
     };
     let Some(next_index) = next_index else {
-        println!("No next index?");
+        // log::debug!("No next index?");
         return;
     };
 
@@ -97,7 +97,6 @@ fn apply_animation(
 
     let mut transform = world.get::<&mut LocalTransform>(target.target).unwrap();
 
-    println!("elapsed: {elapsed:?}, duration: {duration:?}");
     let output_values = &target.outputs;
     match output_values {
         AnimationOutputs::Scales(scales) => {
@@ -119,9 +118,7 @@ fn apply_animation(
             let previous_output = quats[previous_index];
             let next_output = quats[next_index];
 
-            println!("rotation previous: {:?}", transform.rotation);
             transform.rotation = previous_output.slerp(next_output, interpolation_value);
-            println!("rotation after: {:?}", transform.rotation);
         }
     }
 }
